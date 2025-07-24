@@ -690,7 +690,98 @@ After adding this block and starting the development environment with `docker co
     ```bash
     docker compose -f pwd.yml restart
     ```
+---
 
+## Phase 1: Google Cloud Platform Configuration
+
+The first and most critical phase is to create OAuth 2.0 credentials in the Google Cloud Platform. These credentials allow your ERPNext instance to communicate with Google's APIs securely.
+
+### Step 1: Create a New Google Cloud Project
+
+1.  **Navigate to the Google API Console:** Open the [Google API Console](https://console.developers.google.com/).
+2.  **Create a Project:** If you don't have a project, click the project dropdown (top-left) and select "**New Project**".
+    *   **Project Name:** Give it a descriptive name, like "ERPNext Integration".
+    *   Click "**Create**".
+
+### Step 2: Enable the Necessary APIs
+
+For each Google service you want to integrate, you must enable its corresponding API.
+
+1.  From your project's Dashboard, click on "**+ ENABLE APIS AND SERVICES**".
+2.  Search for and enable the APIs you need. For a full integration, you will need:
+    *   **Google Drive API** (for backups)
+    *   **Google Calendar API** (for calendar sync)
+    *   **People API** (for Google Contacts sync)
+3.  Click on each API and then click the "**Enable**" button.
+
+### Step 3: Configure the OAuth Consent Screen
+
+This screen is what your users will see when they are asked to grant permission to your ERPNext application.
+
+1.  In the left-hand navigation menu, go to "**OAuth consent screen**".
+2.  **User Type:** Choose "**External**" and click "**Create**". This is the standard choice for most applications.
+3.  **App Information:**
+    *   **App name:** Enter a name for your application, e.g., "ERPNext Local Dev".
+    *   **User support email:** Select your email address.
+    *   **App logo:** (Optional) You can upload a logo.
+4.  **App Domain:** This section is crucial for security.
+    *   As noted: *To protect you and your users, Google only allows apps using OAuth to use Authorized Domains. The following information will be shown to your users on the consent screen.*
+    *   **Application home page:** For a local setup, enter `https://localhost/app/home`. If you have a purchased domain, you would use that instead (e.g., `https://your-erp-domain.com/app/home`).
+    *   **Application privacy policy link / terms of service link:** For local development, you can use `https://localhost` for these. For a production app, you must provide links to your actual policies.
+5.  **Authorized domains:**
+    *   As noted: *When a domain is used on the consent screen or in an OAuth client’s configuration, it must be pre-registered here.*
+    *   Click "**+ ADD DOMAIN**" and enter `localhost`.
+    *   If you are using a purchased domain for a live site, you would add that domain here (e.g., `your-erp-domain.com`).
+6.  **Developer contact information:** Enter your email address.
+7.  Click "**SAVE AND CONTINUE**".
+8.  **Scopes & Test Users:** For now, you can skip the "Scopes" and "Test Users" sections by clicking "**SAVE AND CONTINUE**" and then "**BACK TO DASHBOARD**".
+
+### Step 4: Create OAuth 2.0 Client ID
+
+This is where you will define the specific URIs your ERPNext application is allowed to use for authentication and get your final credentials.
+
+1.  In the left-hand navigation menu, go to "**Credentials**".
+2.  Click on "**+ CREATE CREDENTIALS**" and select "**OAuth client ID**".
+3.  **Configure the Client ID:**
+    *   **Application type:** Select "**Web application**".
+    *   **Name:** Give it a descriptive name, like "ERPNext Localhost Client".
+4.  **Authorized JavaScript origins:** This is for requests originating from a browser.
+    *   Click "**+ ADD URI**".
+    *   Enter `https://localhost`.
+    *   *(For a production environment, you would add your domain, e.g., `https://your-erp-domain.com`)*.
+5.  **Authorized redirect URIs:** This is the specific endpoint in ERPNext that Google will send the authentication response to.
+    *   Click "**+ ADD URI**".
+    *   Enter the following exact URI for a standard Frappe/ERPNext setup:
+        ```
+        https://localhost/api/method/frappe.integrations.google_oauth.callback
+        ```
+    *   *(For a production environment, replace `localhost` with your domain: `https://your-erp-domain.com/api/method/frappe.integrations.google_oauth.callback`)*.
+6.  Click "**CREATE**".
+
+### Step 5: Get Your Credentials
+
+A pop-up window will now appear titled "**OAuth client created**". It will display your `Client ID` and `Client secret`.
+
+*   **Your Client ID:** `(a long string of characters)`
+*   **Your Client Secret:** `(a shorter, secret string of characters)`
+
+**Copy both of these values and keep them secure.** You will need them for the next phase.
+
+> **Important Note:** As the console mentions, *it may take 5 minutes to a few hours for these new settings to take effect* on Google's side. If you get an error immediately after setup, wait a while and try again.
+
+## Phase 2: ERPNext Configuration
+
+Now, with the credentials from Google, you can configure ERPNext to connect to your newly created app.
+
+1.  **Navigate to Google Settings in ERPNext:** Log in to your ERPNext instance and use the awesome bar to search for "**Google Settings**".
+2.  **Enter Credentials:**
+    *   In the "Google Settings" page, find the fields for "**Client ID**" and "**Client Secret**".
+    *   Paste the values you copied from the Google API Console in the previous phase.
+3.  **Enable Google Integration:** Check the box that says "**Enable**".
+4.  **Save:** Click the "**Save**" button at the top of the page.
+
+Your general Google integration is now configured. You can proceed to authorize and use individual services like Google Drive, Calendar, and Contacts. The authorization process for each service will now use the credentials you just saved and will redirect you to the Google consent screen you configured.
+---
 Your local ERPNext instance is now fully configured for development and ready for Google Integration.
 
 ---
