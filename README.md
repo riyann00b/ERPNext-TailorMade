@@ -299,6 +299,82 @@ copy only the apps
 The complete `pwd.yml` file used in this guide is available at:
 *   [**`pwd.yml` on GitHub**](https://github.com/riyann00b/ERPNext-TailorMade/blob/main/pwd.yml)
 
+The key changes from the default file are summarized below. The diff view provides a clear line-by-line comparison of what was added or changed.
+<details> <summary><strong>Click to expand and view the `diff` of changes in `pwd.yml`</strong></summary>
+diff
+# No changes to the version
+version: "3"
+
+services:
+  # --- Backend Service ---
+  backend:
+-   image: frappe/erpnext:v15.70.2
++   # MODIFICATION: Use the custom-built image that includes all our apps.
++   image: riyann00b/frappe-custom:latest
++   # MODIFICATION: Add platform for Apple M1/M2 compatibility.
++   platform: linux/amd64
+# ... no other changes to backend ...
+
+  # --- Configurator Service ---
+  configurator:
+-   image: frappe/erpnext:v15.70.2
++   image: riyann00b/frappe-custom:latest
++   platform: linux/amd64
+# ... no other changes to configurator ...
+
+  # --- Create-Site Service ---
+  create-site:
+-   image: frappe/erpnext:v15.70.2
++   image: riyann00b/frappe-custom:latest
++   platform: linux/amd64
+# ...
+    command:
+      - >
+# ... wait-for-it block is identical ...
+-       bench new-site --mariadb-user-host-login-scope='%' --admin-password=admin --db-root-username=root --db-root-password=admin --install-app erpnext --set-default frontend;
++       # MODIFICATION: The site creation command is updated to install all custom apps from the start.
++       bench new-site --mariadb-user-host-login-scope='%' --admin-password=admin --db-root-username=root --db-root-password=admin --install-app erpnext --install-app payments --install-app ecommerce_integrations --install-app india_compliance --install-app insights --install-app print_designer --install-app helpdesk  --set-default frontend;
+
+  # --- Frontend Service ---
+  frontend:
+-   image: frappe/erpnext:v15.70.2
++   image: riyann00b/frappe-custom:latest
++   platform: linux/amd64
+    depends_on:
+      - websocket
++     # MODIFICATION: Add dependency on backend to ensure correct startup order.
++     - backend
+-   ports:
+-     - "8080:8080"
++   # MODIFICATION: The frontend port is removed because the new NGINX service
++   # will now manage external traffic on ports 80 and 443.
+
+  # --- All other Frappe services (queue-long, queue-short, scheduler, websocket) ---
+  # are similarly updated to use the custom image and platform.
+-   image: frappe/erpnext:v15.70.2
++   image: riyann00b/frappe-custom:latest
++   platform: linux/amd64
+
++ # --- NGINX Reverse Proxy Service (NEW) ---
++ # NEW SERVICE: An NGINX reverse proxy is added to handle SSL termination (HTTPS).
++ nginx:
++   image: nginx:latest
++   platform: linux/amd64
++   deploy:
++     restart_policy:
++       condition: on-failure
++   ports:
++     - "80:80"
++     - "443:443"
++   volumes:
++     - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
++     - ./ssl:/etc/nginx/ssl:ro
++   depends_on:
++     - frontend
++   networks:
++     - frappe_network
+</details>
+
 ---
 
 ### Step 8: Launch the Stack and Finalize Setup
