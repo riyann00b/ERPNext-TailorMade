@@ -291,6 +291,11 @@ services:
         bench new-site --mariadb-user-host-login-scope='%' --admin-password=admin --db-root-username=root --db-root-password=admin --install-app erpnext --install-app hrms --install-app payments --install-app crm --install-app ecommerce_integrations --install-app india_compliance --install-app insights --install-app print_designer --install-app helpdesk --set-default frontend;
 ```
 
+copy only the apps
+```yaml
+--install-app hrms --install-app payments --install-app crm --install-app ecommerce_integrations --install-app india_compliance --install-app insights --install-app print_designer --install-app helpdesk
+```
+
 The complete `pwd.yml` file used in this guide is available at:
 *   [**`pwd.yml` on GitHub**](https://github.com/riyann00b/ERPNext-TailorMade/blob/main/pwd.yml)
 
