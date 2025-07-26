@@ -299,9 +299,12 @@ copy only the apps
 The complete `pwd.yml` file used in this guide is available at:
 *   [**`pwd.yml` on GitHub**](https://github.com/riyann00b/ERPNext-TailorMade/blob/main/pwd.yml)
 
-The key changes from the default file are summarized below. The diff view provides a clear line-by-line comparison of what was added or changed.
-<details> <summary><strong>Click to expand and view the `diff` of changes in `pwd.yml`</strong></summary>
-diff
+The key changes from the default file are summarized below. The `diff` view provides a clear line-by-line comparison of what was added or changed.
+
+<details>
+<summary><strong>Click to expand and view the `diff` of changes in `pwd.yml`</strong></summary>
+
+```diff
 # No changes to the version
 version: "3"
 
@@ -373,9 +376,9 @@ services:
 +     - frontend
 +   networks:
 +     - frappe_network
-</details>
+```
 
----
+</details>
 
 ### Step 8: Launch the Stack and Finalize Setup
 
