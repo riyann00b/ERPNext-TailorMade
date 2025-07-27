@@ -461,14 +461,14 @@ services:
     # Replace 'frappe_docker-backend-1' with your actual container name
     docker exec frappe_docker-backend-1 bench set-config -g host_name https://localhost
     ```
-4.  **Access your site:**
-    Open your browser and navigate to **[https://localhost](https://localhost)**. Accept the security warning for the self-signed certificate.
-
-5.  **Restart the stack** for the change to take effect:
+    
+4.  **Restart the stack** for the change to take effect:
     ```bash
     docker compose -f pwd.yml restart
     ```
-
+5.  **Access your site:**
+    Open your browser and navigate to **[https://localhost](https://localhost)**. Accept the security warning for the self-signed certificate.
+    
 ---
 
 ## Part 4: Configuring Google Integration
