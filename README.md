@@ -10,20 +10,28 @@ A comprehensive guide to installing a full ERPNext stack with Docker, including 
 
 ## 📋 Table of Contents
 
-- [Part 1: Building the Custom Docker Image]()
-- [Part 2: Configuring the Local Environment for HTTPS]()
-- [Part 3: Docker Compose Configuration and Launch]()
-- [Part 4: Configuring Google Integration]()
-- [Part 5: Post-Installation & Troubleshooting]()
+- [Prerequisites](#Prerequisites)
+- Part 1: Building the Custom Docker Image
+- Part 2: Configuring the Local Environment for HTTPS
+- Part 3: Docker Compose Configuration and Launch
+- Part 4: Configuring Google Integration
+- Part 5: Post-Installation & Troubleshooting
+- Part 6: Setting Up Products and Invoices for a Women's Clothing Store
+- Part 7: Integrating n8n for Automation
+- Part 8: Domain and SSL Setup for Production
+- Bench CLI Cheatsheet
+- [Resources](#resources)
 
 ---
 
 ### ✅ Prerequisites
 
-Before you begin, ensure you have the following software installed and running on your system:
+Ensure the following software is installed and running:
 - **Docker**
 - **Docker Compose**
 - **Git**
+- **OpenSSL** (for generating self-signed SSL certificates)
+- **Optional**: `jq` (for JSON validation), `nano` or `VS Code` (for editing files)
 
 ---
 
@@ -147,6 +155,18 @@ cd ..
 Run the build command using the **Quick Build** method for faster builds.
 
 **Quick Build Command Used in this Guide:**
+example: 
+> Change the tag to your docker username and tag the image as latest
+```docker
+docker build \
+  --build-arg=FRAPPE_PATH=https://github.com/frappe/frappe \
+  --build-arg=FRAPPE_BRANCH=version-15 \
+  --build-arg=APPS_JSON_BASE64=$APPS_JSON_BASE64 \
+  --tag=ghcr.io/user/repo/custom:1.0.0 \
+  --file=images/layered/Containerfile .
+```
+
+Production:
 ```bash
 docker build \
   --build-arg=FRAPPE_PATH=https://github.com/frappe/frappe \
@@ -168,10 +188,10 @@ docker build \
   --build-arg=PYTHON_VERSION=3.11.9 \
   --build-arg=NODE_VERSION=20.19.2 \
   --build-arg=APPS_JSON_BASE64=$APPS_JSON_BASE64 \
-  --tag=ghcr.io/user/repo/custom:1.0.0 \
+  --tag=ghcr.io/user/repo/custom:1.0.0 \ #change it to  --tag=Your-Docker-username/frappe-custom:latest 
   --file=images/custom/Containerfile .
 ```
-Tag the image:
+OR Manually Tag the image:
 ```bash
 docker tag ghcr.io/user/repo/custom:1.0.0 riyann00b/frappe-custom:latest
 ```
@@ -296,6 +316,15 @@ copy only the apps
 --install-app hrms --install-app payments --install-app crm --install-app ecommerce_integrations --install-app india_compliance --install-app insights --install-app print_designer --install-app helpdesk
 ```
 
+**Optional**: Add `extra_hosts` to the `/frappe_docker/devcontainer-example/docker-compose.yml` service for custom domain resolution:
+```yaml
+services:
+  frappe:
+    extra_hosts:
+      app1.localhost: 172.17.0.1
+      app2.localhost: 172.17.0.1
+```
+
 The complete `pwd.yml` file used in this guide is available at:
 *   [**`pwd.yml` on GitHub**](https://github.com/riyann00b/ERPNext-TailorMade/blob/main/pwd.yml)
 
@@ -387,10 +416,12 @@ services:
    ```bash
    docker compose -f pwd.yml up -d
    ```
-
-2. **Access your site:**
-   Open your browser and navigate to **[https://localhost](https://localhost)**. Accept the security warning for the self-signed certificate.
-
+   
+2. **Monitor site creation**:
+   ```bash
+   docker logs frappe_docker-create-site-1 -f
+   ```
+   
 3. **Set the `host_name` for correct URL generation:**
    This ensures ERPNext generates correct `https://` links.
    ```bash
@@ -400,8 +431,10 @@ services:
    # Replace 'frappe_docker-backend-1' with your actual container name
    docker exec frappe_docker-backend-1 bench set-config -g host_name https://localhost
    ```
-
-4. **Restart the stack** for the change to take effect:
+4. **Access your site:**
+   Open your browser and navigate to **[https://localhost](https://localhost)**. Accept the security warning for the self-signed certificate.
+   
+5. **Restart the stack** for the change to take effect:
    ```bash
    docker compose -f pwd.yml restart
    ```
