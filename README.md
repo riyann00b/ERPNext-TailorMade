@@ -8,22 +8,6 @@ A comprehensive guide to installing a full ERPNext stack with Docker, including 
 
 ---
 
-## 📋 Table of Contents
-
-- ![Prerequisites](#-prerequisites)
-- ![Part 1: Building the Custom Docker Image](#part-1-building-the-custom-docker-image)
-- ![Part 2: Configuring the Local Environment for HTTPS](#part-2-configuring-the-local-environment-for-https)
-- ![Part 3: Docker Compose Configuration and Launch](#part-3-docker-compose-configuration-and-launch)
-- ![Part 4: Configuring Google Integration](#part-4-configuring-google-integration)
-- ![Part 5: Post-Installation & Troubleshooting](#part-5-post-installation--troubleshooting)
-- ![Part 6: Setting Up Products and Invoices for a Women's Clothing Store](#part-6-setting-up-products-and-invoices-for-a-womens-clothing-store)
-- ![Part 7: Integrating n8n for Automation](#part-7-integrating-n8n-for-automation)
-- ![Part 8: Domain and SSL Setup for Production](#part-8-domain-and-ssl-setup-for-production)
-- ![Bench CLI Cheatsheet](#bench-cli-cheatsheet)
-- ![Resources](#resources)
-
----
-
 ### ✅ Prerequisites
 
 Ensure the following software is installed and running:
@@ -60,7 +44,8 @@ Then, create and edit the new file using your preferred editor:
 nano apps.json
 
 # Or using VS Code
-code apps.json```
+code apps.json
+```
 
 **`apps.json` Example:**
 ```json
@@ -119,7 +104,9 @@ code apps.json```
     "url": "https://github.com/frappe/helpdesk.git",
     "branch": "main"
   }
-]```
+]
+```
+
 > #### ❗ Important Notes:
 > - **Dependencies:** You must manually add app dependencies. For example, `hrms` requires `erpnext` to be in the list.
 > - **Private Repos:** For private repositories, use an HTTPS git URL with a Personal Access Token (PAT): `https://{{PAT}}@github.com/your-org/your-private-app.git`.
@@ -240,7 +227,7 @@ nano nginx/nginx.conf
 ```
 
 Paste the following content into `nginx/nginx.conf`:
-```nginx
+```yaml
 server {
     listen 80;
     server_name localhost;
@@ -275,6 +262,7 @@ This section describes the master `pwd.yml` file that orchestrates all services.
 
 ### Step 7: Create the Final `pwd.yml` Docker Compose File
 Navigate to the `frappe_docker` directory if not already there:
+
 ```bash
 cd /path/to/your/frappe_docker
 ```
@@ -335,6 +323,7 @@ Edit your `frontend` service:
       - sites:/home/frappe/frappe-bench/sites
       - logs:/home/frappe/frappe-bench/logs
 ```
+
 Add your `nginx` service:
 ```yaml
   nginx:
