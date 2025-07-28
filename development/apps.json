@@ -1,0 +1,22 @@
+[
+  {
+    "url": "https://github.com/frappe/erpnext",
+    "branch": "version-15"
+  },
+  {
+    "url": "https://github.com/frappe/ecommerce_integrations.git",
+    "branch": "main"
+  },
+  {
+    "url": "https://github.com/resilient-tech/india-compliance",
+    "branch": "version-15"
+  },
+  {
+    "url": "https://github.com/frappe/insights.git",
+    "branch": "version-3"
+  },
+  {
+    "url": "https://github.com/frappe/print_designer.git",
+    "branch": "main"
+  }
+]
