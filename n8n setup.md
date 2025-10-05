@@ -176,5 +176,5 @@ Tunnel URL: https://random-subdomain.n8n.cloud/
 
 #### 📂 n8n Folder Structure
 
-You can find the complete configuration for this setup in my n8n folder: [Link to your n8n folder on GitHub]().
+You can find the complete configuration for this setup in my n8n folder: [Link](https://github.com/riyann00b/ERPNext-TailorMade/tree/main/n8n).
 
