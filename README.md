@@ -2,13 +2,14 @@
 
 A comprehensive guide to installing a full ERPNext stack with Docker, including custom apps and an NGINX reverse proxy for local HTTPS. This document details a production-inspired setup, including post-installation workarounds and instructions for enabling Google Integration with a self-signed certificate.
 
+> [!Note]
 > ### 🙏 Acknowledgements
-> *   This guide is heavily inspired by Atul Bhatt's YouTube video: [Frappe Docker Custom Apps Installation using Quick Build Image | 2025](https://www.youtube.com/watch?v=FWGWKC_rZeI).
-> *   The official Frappe Docker documentation is the primary source. Always check for updates there before following this guide: [Official Frappe Docker Documentation](https://github.com/frappe/frappe_docker/tree/main).
+> This guide is heavily inspired by Atul Bhatt's YouTube video: [Frappe Docker Custom Apps Installation using Quick Build Image | 2025](https://www.youtube.com/watch?v=FWGWKC_rZeI).
+> The official Frappe Docker documentation is the primary source. Always check for updates there before following this guide: [Official Frappe Docker Documentation](https://github.com/frappe/frappe_docker/tree/main).
 
 ---
 
-### ✅ Prerequisites
+## ✅ Prerequisites
 
 Ensure the following software is installed and running:
 - **Docker**
@@ -16,29 +17,92 @@ Ensure the following software is installed and running:
 - **Git**
 - **OpenSSL** (for generating self-signed SSL certificates)
 - **Optional**: `jq` (for JSON validation), `nano` or `VS Code` (for editing files)
+- **Nginx**
+
+## Table of Contents
+
+- [🚀 ERPNext-TailorMade: A Guide to Custom Docker Installation](#-erpnext-tailormade-a-guide-to-custom-docker-installation)
+- [Prerequisites](#-prerequisites)
+- [Simple Setup (No Custom Apps)](#self-hosted-docker-container-simple-setup-no-custom-apps)
+- [Complex Setup with Custom Apps](#self-hosted-docker-container-more-complex-setup-with-custom-apps)
+- [Complex Setup with Custom Apps, HTTPS, Custom Domain, and SSL](#self-hosted-docker-container-complex-setup-with-custom-apps-https-custom-domain-and-ssl
+)
+- [Backup Settings, Inventory, and Updating ERPNext](#backup-settings-inventory-and-updating-erpnext)
+  - [Backup Steps](#backup-settings-inventory-and-updating-erpnext)
+  - [Restore Steps](#restore-steps)
+- [Automatic Sync to Google Drive](#automatic-sync-to-google-drive)
+- [Troubleshoot](#troubleshoot)
+  - [OSError: wkhtmltopdf reported an error](#oserror-wkhtmltopdf-reported-an-error-exit-with-code-1-due-to-network-error-connectionrefused)
+
+### Self-Hosted Docker Container: Simple Setup (No Custom Apps)
+
+See [Self-hosted Docs](https://github.com/frappe/erpnext#self-hosted).
+
+#### Docker Installation
+
+See [ERPNext Docker Docs](https://github.com/frappe/erpnext#docker).
+
+> [!NOTE]
+> **Prerequisites**: Docker, Docker Compose, Git. Refer to [Docker Documentation](https://docs.docker.com) for more details on Docker setup.
+
+Run the following commands:
+
+```bash
+git clone https://github.com/frappe/frappe_docker
+cd frappe_docker
+docker compose -f pwd.yml up -d
+```
+
+After a couple of minutes, the site should be accessible on your localhost port `8080`. Use the default login credentials to access the site:
+- **Username**: `Administrator`
+- **Password**: `admin`
+
+See [Frappe Docker](https://github.com/frappe/frappe_docker?tab=readme-ov-file#to-run-on-arm64-architecture-follow-this-instructions) for ARM64 architecture Docker setup.
+
+#### To run on ARM64 architecture follow these instructions:
+
+See [ARM64 Docs](https://github.com/frappe/frappe_docker?tab=readme-ov-file#to-run-on-arm64-architecture-follow-this-instructions).
+
+After cloning the repo and `cd frappe_docker`, run this command to build multi-architecture images specifically for ARM64:
+
+```bash
+docker buildx bake --no-cache --set "*.platform=linux/arm64"
+```
+
+Then:
+- Add `platform: linux/arm64` to all services in the `pwd.yml`.
+- Replace the current specified versions of the `erpnext` image in `pwd.yml` with `:latest`.
+
+Finally, run:
+
+```bash
+docker compose -f pwd.yml up -d
+```
 
 ---
 
-## Part 1: Building the Custom Docker Image
+## Self-Hosted Docker Container: More Complex Setup with Custom Apps
 
-This section covers how to build a custom Docker image that includes ERPNext and any additional Frappe apps you require.
+### Building the Custom Docker Image
 
-### Step 1: Clone the Frappe Docker Repository
+#### Step 1: Clone the Frappe Docker Repository
 Clone the official `frappe_docker` repository and navigate into the `development` directory.
 
 ```bash
 git clone https://github.com/frappe/frappe_docker
-cd frappe_docker/development
-```
+cd frappe_docker/development```
 
-### Step 2: Configure Custom Applications via `apps.json`
+#### Step 2: Configure Custom Applications via `apps.json`
 Create a file named `apps.json` that lists all the apps to be installed.
 
 First, remove the example file:
+
 ```bash
 rm -f apps-example.json
 ```
+
 Then, create and edit the new file using your preferred editor:
+
 ```bash
 # Using nano
 nano apps.json
@@ -48,41 +112,12 @@ code apps.json
 ```
 
 **`apps.json` Example:**
-```json
-[
-  {
-    "url": "https://github.com/frappe/erpnext",
-    "branch": "version-15"
-  },
-  {
-    "url": "https://github.com/frappe/payments",
-    "branch": "version-15"
-  },
-  {
-    "url": "https://{{ PAT }}@git.example.com/project/repository.git",
-    "branch": "main"
-  }
-]
-```
 
-**`apps.json` Production File Used in this Guide:**
 ```json
 [
   {
     "url": "https://github.com/frappe/erpnext",
     "branch": "version-15"
-  },
-  {
-    "url": "https://github.com/frappe/hrms.git",
-    "branch": "version-15"
-  },
-  {
-    "url": "https://github.com/frappe/payments",
-    "branch": "version-15"
-  },
-  {
-    "url": "https://github.com/frappe/crm.git",
-    "branch": "main"
   },
   {
     "url": "https://github.com/frappe/ecommerce_integrations.git",
@@ -93,33 +128,32 @@ code apps.json
     "branch": "version-15"
   },
   {
-    "url": "https://github.com/frappe/insights.git",
-    "branch": "version-3"
-  },
-  {
     "url": "https://github.com/frappe/print_designer.git",
-    "branch": "main"
+    "branch": "develop"
   },
   {
-    "url": "https://github.com/frappe/helpdesk.git",
-    "branch": "main"
+    "url": "https://github.com/clefincode/clefincode_chat.git",
+    "branch": "develop"
   }
 ]
 ```
 
-> #### ❗ Important Notes:
-> - **Dependencies:** You must manually add app dependencies. For example, `hrms` requires `erpnext` to be in the list.
-> - **Private Repos:** For private repositories, use an HTTPS git URL with a Personal Access Token (PAT): `https://{{PAT}}@github.com/your-org/your-private-app.git`.
+> [!IMPORTANT]
+> **Dependencies**: You must manually add app dependencies. For example, `hrms` requires `erpnext` to be in the list.
+> **Private Repos**: For private repositories, use an HTTPS git URL with a Personal Access Token (PAT): `https://{{PAT}}@github.com/your-org/your-private-app.git`.
 
-### Step 3: Encode `apps.json` to Base64
+#### Step 3: Encode `apps.json` to Base64
 The Docker build process requires the `apps.json` content to be passed as a Base64 encoded string.
 
+> [!NOTE]
+> Ensure you are in the `frappe_docker/development` directory.
+
 ```bash
-# Ensure you are in the frappe_docker/development directory
 export APPS_JSON_BASE64=$(base64 -w 0 apps.json)
 ```
 
 To validate the string, you can decode it and check the contents:
+
 ```bash
 # Decode the variable into a test file and display it
 echo -n ${APPS_JSON_BASE64} | base64 -d > apps-test-output.json
@@ -129,28 +163,27 @@ cat apps-test-output.json
 jq empty apps.json
 ```
 
-### Step 4: Build and Push the Custom Docker Image
+#### Step 4: Build and Push the Custom Docker Image
 This is a multi-stage process to build, tag, and push your image.
 
-#### 🏗️ A. Build the Image
-Navigate back to the root `frappe_docker` directory.
+##### 🏗️ A. Build the Image
+
+> [!NOTE]
+> Navigate back to the root `frappe_docker` directory.
+
 ```bash
 cd ..
 ```
+
 Run the build command using the **Quick Build** method for faster builds.
 
 **Quick Build Command Example:**
-> Change the tag to your Docker Hub username and tag the image as `latest`.
-```docker
-docker build \
-  --build-arg=FRAPPE_PATH=https://github.com/frappe/frappe \
-  --build-arg=FRAPPE_BRANCH=version-15 \
-  --build-arg=APPS_JSON_BASE64=$APPS_JSON_BASE64 \
-  --tag=ghcr.io/user/repo/custom:1.0.0 \
-  --file=images/layered/Containerfile .
-```
 
-**Production Command Used in this Guide:**
+Refer to [configure-build](https://github.com/frappe/frappe_docker/blob/main/docs/custom-apps.md#configure-build) for full details.
+
+> [!TIP]
+> Change the `tag` to your Docker Hub `username` and tag the image as `latest`.
+
 ```bash
 docker build \
   --build-arg=FRAPPE_PATH=https://github.com/frappe/frappe \
@@ -159,115 +192,31 @@ docker build \
   --tag=riyann00b/frappe-custom:latest \
   --file=images/layered/Containerfile .
 ```
+
+> [!IMPORTANT]
 > ☕ Sit back, relax, and have a coffee. This will take a while.
 
-#### 🏷️ B. Custom Build Image (Full Image, Full Control)
-This method builds the base and build layer every time, allowing customization of Python and NodeJS runtime versions. It takes more time to build.
-
-**Example:**
-```bash
-docker build \
-  --build-arg=FRAPPE_PATH=https://github.com/frappe/frappe \
-  --build-arg=FRAPPE_BRANCH=version-15 \
-  --build-arg=PYTHON_VERSION=3.11.9 \
-  --build-arg=NODE_VERSION=20.19.2 \
-  --build-arg=APPS_JSON_BASE64=$APPS_JSON_BASE64 \
-  --tag=ghcr.io/user/repo/custom:1.0.0 `#change it to --tag=Your-Docker-username/frappe-custom:latest` \
-  --file=images/custom/Containerfile .
-```
-OR Manually Tag the image:
-```bash
-docker tag ghcr.io/user/repo/custom:1.0.0 riyann00b/frappe-custom:latest
-```
-
 Verify the new image:
+
 ```bash
 docker images
 ```
-Optionally, remove the old intermediate tag:
-```bash
-docker rmi ghcr.io/user/repo/custom:1.0.0
-```
 
-#### 🚀 C. Push the Image to a Registry
-Log in to your container registry and push the image.
+#### Step 5: Docker Compose Configuration and Launch
 
-```bash
-# Log in to Docker Hub (or your chosen registry)
-docker login
+##### Create the Final `pwd.yml` Docker Compose File
 
-# Push the final image
-docker push riyann00b/frappe-custom:latest
-```
-
----
-
-## Part 2: Configuring the Local Environment for HTTPS
-
-Set up NGINX as a reverse proxy with a self-signed SSL certificate to enable `https://` access on `localhost`.
-
-### Step 5: Generate a Self-Signed SSL Certificate
-From your root `frappe_docker` directory, create a directory for the certificate and generate the files.
-
-```bash
-mkdir -p ssl
-
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout ssl/erpnext-selfsigned.key \
-  -out ssl/erpnext-selfsigned.crt
-```
-> **❗ IMPORTANT:** When prompted, the only critical field is the **Common Name**. You **must** enter `localhost`. All other fields can be left blank by pressing Enter.
-
-### Step 6: Create the NGINX Configuration File
-Create a directory and a configuration file for NGINX.
-
-```bash
-mkdir nginx
-nano nginx/nginx.conf
-```
-
-Paste the following content into `nginx/nginx.conf`:
-```yaml
-server {
-    listen 80;
-    server_name localhost;
-    # Redirect all HTTP traffic to HTTPS
-    return 301 https://$host$request_uri;
-}
-
-server {
-    listen 443 ssl;
-    server_name localhost;
-
-    # SSL Certificate files
-    ssl_certificate /etc/nginx/ssl/erpnext-selfsigned.crt;
-    ssl_certificate_key /etc/nginx/ssl/erpnext-selfsigned.key;
-
-    # Proxy settings
-    location / {
-        proxy_pass http://frontend:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
----
-
-## Part 3: Docker Compose Configuration and Launch
-
-This section describes the master `pwd.yml` file that orchestrates all services.
-
-### Step 7: Create the Final `pwd.yml` Docker Compose File
-Navigate to the `frappe_docker` directory if not already there:
+> [!TIP]
+> Navigate to the `frappe_docker` directory if not already there:
 
 ```bash
 cd /path/to/your/frappe_docker
+# or
+cd ..
 ```
 
 Edit the `pwd.yml` file with your preferred text editor:
+
 ```bash
 # Using nano
 sudo nano pwd.yml
@@ -276,292 +225,459 @@ sudo nano pwd.yml
 code pwd.yml
 ```
 
-Replace all instances of the default image (e.g., `frappe/erpnext:v15.xx.x`) with your custom image:
-`riyann00b/frappe-custom:latest`
+> [!TIP]
+> -   Replace all instances of the default image (e.g., `frappe/erpnext:v15.xx.x`) with your custom image (e.g., `riyann00b/frappe-custom:latest`).
+> -   Add `platform: linux/amd64` to all services in the `pwd.yml` file to ensure compatibility (e.g., for Linux, Apple M1/M2 systems).
+> -   Update the `create-site` service's command to include your custom apps for installation.
 
-Add `platform: linux/amd64` to all services in the `pwd.yml` file to ensure compatibility (e.g., for Apple M1/M2 systems).
+**Example modification in `pwd.yml`:**
 
-Update the `create-site` service's command to include your custom apps for installation. Example modification in `pwd.yml`:
 ```yaml
-services:
   create-site:
     command:
-      - >
-        bench new-site --mariadb-user-host-login-scope='%' --admin-password=admin --db-root-username=root --db-root-password=admin --install-app erpnext --install-app hrms --install-app payments --install-app crm --install-app ecommerce_integrations --install-app india_compliance --install-app insights --install-app print_designer --install-app helpdesk --set-default frontend;
+        bench new-site --mariadb-user-host-login-scope='%' --admin-password=admin --db-root-username=root --db-root-password=admin --install-app erpnext '--install-app YOUR-CUSTOM-APPs-name' --set-default frontend;
 ```
 
-Apps to copy for the `--install-app` flag:
+See example `pwd.yml` file [here](https://github.com/riyann00b/ERPNext-TailorMade/blob/main/pwd.yml).
+
+> [!TIP]
+> Apps to copy for the `--install-app` flag:
+
 ```bash
---install-app hrms --install-app payments --install-app crm --install-app ecommerce_integrations --install-app india_compliance --install-app insights --install-app print_designer --install-app helpdesk
+--install-app ecommerce_integrations --install-app india_compliance --install-app print_designer --install-app clefincode_chat
 ```
 
-Edit your `frontend` service:
-```yaml
-  frontend:
-    image: riyann00b/frappe-custom:latest
-    platform: linux/amd64
-    networks:
-      - frappe_network
-    depends_on:
-      - websocket
-      - backend
-    deploy:
-      restart_policy:
-        condition: on-failure
-    command:
-      - nginx-entrypoint.sh
-    environment:
-      BACKEND: backend:8000
-      FRAPPE_SITE_NAME_HEADER: frontend
-      SOCKETIO: websocket:9000
-      UPSTREAM_REAL_IP_ADDRESS: 127.0.0.1
-      UPSTREAM_REAL_IP_HEADER: X-Forwarded-For
-      UPSTREAM_REAL_IP_RECURSIVE: "off"
-      PROXY_READ_TIMEOUT: 120
-      CLIENT_MAX_BODY_SIZE: 50m
-    volumes:
-      - sites:/home/frappe/frappe-bench/sites
-      - logs:/home/frappe/frappe-bench/logs
-```
-
-Add your `nginx` service:
-```yaml
-  nginx:
-    image: nginx:latest
-    platform: linux/amd64
-    deploy:
-      restart_policy:
-        condition: on-failure
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      # THIS IS THE FIXED LINE
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - frontend
-    networks:
-      - frappe_network
-```
-
-**Optional**: Add `extra_hosts` to the `/frappe_docker/devcontainer-example/docker-compose.yml` service for custom domain resolution:
-```yaml
-services:
-  frappe:
-    extra_hosts:
-      app1.localhost: 172.17.0.1
-      app2.localhost: 172.17.0.1
-```
-
-The complete `pwd.yml` file used in this guide is available at:
-*   [**`pwd.yml` on GitHub**](https://github.com/riyann00b/ERPNext-TailorMade/blob/main/pwd.yml)
-
-The key changes from the default file are summarized below. The `diff` view provides a clear line-by-line comparison of what was added or changed.
-
-<details>
-<summary><strong>Click to expand and view the `diff` of changes in `pwd.yml`</strong></summary>
-
-```diff
-# No changes to the version
-version: "3"
-
-services:
-  # --- Backend Service ---
-  backend:
--   image: frappe/erpnext:v15.70.2
-+   # MODIFICATION: Use the custom-built image that includes all our apps.
-+   image: riyann00b/frappe-custom:latest
-+   # MODIFICATION: Add platform for Apple M1/M2 compatibility.
-+   platform: linux/amd64
-# ... no other changes to backend ...
-
-  # --- Configurator Service ---
-  configurator:
--   image: frappe/erpnext:v15.70.2
-+   image: riyann00b/frappe-custom:latest
-+   platform: linux/amd64
-# ... no other changes to configurator ...
-
-  # --- Create-Site Service ---
-  create-site:
--   image: frappe/erpnext:v15.70.2
-+   image: riyann00b/frappe-custom:latest
-+   platform: linux/amd64
-# ...
-    command:
-      - >
-# ... wait-for-it block is identical ...
--       bench new-site --mariadb-user-host-login-scope='%' --admin-password=admin --db-root-username=root --db-root-password=admin --install-app erpnext --set-default frontend;
-+       # MODIFICATION: The site creation command is updated to install all custom apps from the start.
-+       bench new-site --mariadb-user-host-login-scope='%' --admin-password=admin --db-root-username=root --db-root-password=admin --install-app erpnext --install-app payments --install-app ecommerce_integrations --install-app india_compliance --install-app insights --install-app print_designer --install-app helpdesk --set-default frontend;
-
-  # --- Frontend Service ---
-  frontend:
--   image: frappe/erpnext:v15.70.2
-+   image: riyann00b/frappe-custom:latest
-+   platform: linux/amd64
-    depends_on:
-      - websocket
-+     # MODIFICATION: Add dependency on backend to ensure correct startup order.
-+     - backend
--   ports:
--     - "8080:8080"
-+   # MODIFICATION: The frontend port is removed because the new NGINX service
-+   # will now manage external traffic on ports 80 and 443.
-
-  # --- All other Frappe services (queue-long, queue-short, scheduler, websocket) ---
-  # are similarly updated to use the custom image and platform.
--   image: frappe/erpnext:v15.70.2
-+   image: riyann00b/frappe-custom:latest
-+   platform: linux/amd64
-
-+ # --- NGINX Reverse Proxy Service (NEW) ---
-+ # NEW SERVICE: An NGINX reverse proxy is added to handle SSL termination (HTTPS).
-+ nginx:
-+   image: nginx:latest
-+   platform: linux/amd64
-+   deploy:
-+     restart_policy:
-+       condition: on-failure
-+   ports:
-+     - "80:80"
-+     - "443:443"
-+   volumes:
-+     - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-+     - ./ssl:/etc/nginx/ssl:ro
-+   depends_on:
-+     - frontend
-+   networks:
-+     - frappe_network
-
-```
-
-</details>
-
-### Step 8: Launch the Stack and Finalize Setup
+#### Step 6: Launch the Stack and Finalize Setup
 
 1.  **Launch all services:**
     From the root `frappe_docker` directory, run:
+
     ```bash
     docker compose -f pwd.yml up -d
     ```
 
 2.  **Monitor site creation**:
+
     ```bash
     docker logs frappe_docker-create-site-1 -f
     ```
 
-3.  **Set the `host_name` for correct URL generation:**
-    This ensures ERPNext generates correct `https://` links.
-    ```bash
-    # Find the backend container's name
-    docker ps --filter "name=backend"
-
-    # Replace 'frappe_docker-backend-1' with your actual container name
-    docker exec frappe_docker-backend-1 bench set-config -g host_name https://localhost
-    ```
-    
-4.  **Restart the stack** for the change to take effect:
-    ```bash
-    docker compose -f pwd.yml restart
-    ```
-5.  **Access your site:**
-    Open your browser and navigate to **[https://localhost](https://localhost)**. Accept the security warning for the self-signed certificate.
-    
----
-
-## Part 4: Configuring Google Integration
-
-Generate credentials from Google Cloud and configure them in ERPNext for services like Drive, Calendar, and Gmail.
-
-### Phase 1: Google Cloud Platform Configuration
-
-#### Step 1: Create a New Google Cloud Project
-1.  Go to the [Google API Console](https://console.developers.google.com/).
-2.  From the project dropdown, select **New Project**.
-3.  Name it (e.g., "ERPNext Integration") and click **Create**.
-
-#### Step 2: Enable the Necessary APIs
-1.  From the Dashboard, click **+ ENABLE APIS AND SERVICES**.
-2.  Enable the following APIs:
-    -   **Google Drive API**
-    -   **Google Calendar API**
-    -   **People API** (for Google Contacts)
-    -   **Gmail API**
-
-#### Step 3: Configure the OAuth Consent Screen
-1.  Go to **OAuth consent screen** in the left menu.
-2.  Choose **External** User Type and click **Create**.
-3.  Fill in app information (App name, support email, etc.).
-4.  Under **Authorized domains**, add `localhost`.
-5.  Click **SAVE AND CONTINUE**.
-
-#### Step 4: Create Credentials
-**A. Create OAuth 2.0 Client ID:**
-1.  Go to **Credentials** -> **+ CREATE CREDENTIALS** -> **OAuth client ID**.
-2.  Set **Application type** to **Web application**.
-3.  Add `https://localhost` to **Authorized JavaScript origins**.
-4.  Add `https://localhost/api/method/frappe.integrations.google_oauth.callback` to **Authorized redirect URIs**.
-5.  Click **CREATE**.
-
-**B. Create API Key:**
-1.  Go to **Credentials** -> **+ CREATE CREDENTIALS** -> **API Key**.
-2.  Copy the generated key.
-
-#### Step 5: Copy Your Credentials
-From the **Credentials** page, copy your **Client ID**, **Client Secret**, and **API Key**.
-
-### Phase 2: ERPNext General Configuration
-1.  Log in to your ERPNext instance at `https://localhost`.
-2.  Search for **Google Settings**.
-3.  Check the **Enable** box.
-4.  Paste your **Client ID**, **Client Secret**, and **API Key**.
-5.  Click **Save**.
-
-### Phase 3: Setting Up Specific Google Services in ERPNext
-
-#### 📦 Google Drive Setup
-1.  In **Google Settings**, scroll to the "Google Drive" section.
-2.  Click **Authorize Google Drive Access** and complete the consent flow.
-3.  To enable backups, go to **Download Backups** and select "Google Drive" as the storage location.
-
-#### 📅 Google Calendar Setup
-1.  In **Google Settings**, click **Authorize Google Calendar Access** and complete the consent flow.
-2.  Users must configure personal sync options in **My Settings** -> **Google Calendar**.
-
-#### 👤 Google Contacts Setup
-1.  In **Google Settings**, click **Authorize Google Contacts Access** and complete the consent flow.
-2.  Click **Sync Google Contacts** to begin synchronization.
-
-#### ✉️ Google Email (Gmail) Setup
-1.  **Generate a Google App Password**:
-    -   Go to your Google Account -> **Security**.
-    -   Enable **2-Step Verification**.
-    -   Select **App passwords**, generate a password for "Mail" on "Windows Computer", and copy the 16-character password.
-2.  **Configure Email Domain in ERPNext**:
-    -   Open the **Email Domain** list, create a new entry for `gmail.com`, and select the `Gmail` service.
-3.  **Configure Email Account in ERPNext**:
-    -   Open the **Email Account** list and create a new account.
-    -   Enter your Gmail address and select the `gmail.com` domain.
-    -   Paste the 16-character **App Password** into the **Password** field.
-    -   Enable incoming/outgoing mail and save.
+3.  **Access your site:**
+    Open your browser and navigate to [http://localhost:8080](http://localhost:8080).
 
 ---
 
-## Part 5: Post-Installation & Troubleshooting
+## Self-Hosted Docker Container: Complex Setup with Custom Apps, HTTPS, Custom Domain, and SSL
 
-### 🔧 Fixing `wkhtmltopdf` PDF Errors
-**Problem:** `ConnectionRefusedError` when generating PDFs.
-- **Solution 1 (Primary Fix):** Ensure the `host_name` is set to `https://localhost` (see **Step 8**).
-- **Solution 2 (Alternative):** Switch to the Chrome PDF engine in **Print Format List** by duplicating your format and setting **Print Engine** to **Chrome**.
+### Part 1: Building the Custom Docker Image
 
-### 🔧 Troubleshooting NGINX Mount Errors
-**Problem:** Docker Compose fails with `error mounting ".../nginx/nginx.conf" ... not a directory`.
-- **Cause:** Docker created a *file* named `nginx` instead of a directory because the directory didn't exist before `docker compose up` was run.
-- **Solution:**
-  1.  Stop all services: `docker compose -f pwd.yml down`
-  2.  Delete the incorrect entry: `sudo rm -rf nginx`
-  3.  Verify it's gone: `ls -l nginx` (should fail with `No such file or directory`).
-  4.  Re-create the directory and file correctly (see **Step 6**).
-  5.  Relaunch the stack: `docker compose -f pwd.yml up -d --force-recreate`
+This part is **identical** to the previous guide. The goal is to create your custom image with your specific apps. If you have already built your `riyann00b/frappe-custom:latest` image, you can **skip to Part 2**.
+
+#### Step 1: Clone the Frappe Docker Repository
+```bash
+git clone https://github.com/frappe/frappe_docker
+cd frappe_docker
+```
+
+#### Step 2: Configure Custom Applications via `apps.json`
+Create a file named `apps.json` inside the `development` directory.
+
+```bash
+cd development
+nano apps.json
+```
+
+**`apps.json` Example:**
+
+```json
+[
+  {
+    "url": "https://github.com/frappe/erpnext",
+    "branch": "version-15"
+  },
+  {
+    "url": "https://github.com/frappe/hrms",
+    "branch": "version-15"
+  }
+]
+```
+
+#### Step 3: Encode `apps.json` to Base64
+```bash
+export APPS_JSON_BASE64=$(base64 -w 0 apps.json)
+```
+
+#### Step 4: Build the Custom Docker Image
+Navigate back to the root `frappe_docker` directory to build the image.
+
+```bash
+cd ..
+docker build \
+  --build-arg=FRAPPE_PATH=https://github.com/frappe/frappe \
+  --build-arg=FRAPPE_BRANCH=version-15 \
+  --build-arg=APPS_JSON_BASE64=$APPS_JSON_BASE64 \
+  --tag=riyann00b/frappe-custom:latest \
+  --file=images/layered/Containerfile .
+```
+
+---
+
+### Part 2: Automated Deployment with Traefik
+
+This is where the magic happens. We will define our entire stack, including the reverse proxy and SSL, in configuration files.
+
+#### Step 5: The All-Important `.env` Configuration
+Create an `.env` file in your `frappe_docker` directory. This file provides the two critical pieces of information Traefik needs to automate HTTPS.
+
+```bash
+# In the frappe_docker directory
+nano .env
+```
+
+Paste the following, replacing the values with your own domain and email:
+
+```dotenv
+# The domain name(s) for your ERPNext site, separated by commas
+SITES=`erp.yourdomain.com`
+
+# The email address for your Let's Encrypt SSL certificate
+LETSENCRYPT_EMAIL=your.email@example.com
+
+# Your custom image details
+CUSTOM_IMAGE=riyann00b/frappe-custom
+CUSTOM_TAG=latest
+
+# Your database password
+DB_PASSWORD=a-very-secure-password
+```
+
+#### Step 6: Generate the Docker Compose File with Traefik
+Now, we'll generate a single `docker-compose.yml` file that includes the Traefik proxy service.
+
+```bash
+# Create a directory to store your final configurations
+mkdir ~/gitops
+
+# Generate the final docker-compose.yml file
+docker compose \
+  -f compose.yaml \
+  -f overrides/compose.mariadb.yaml \
+  -f overrides/compose.redis.yaml \
+  -f overrides/compose.https.yaml \
+  config > ~/gitops/docker-compose.yml
+```
+
+> [!Note]
+> ### How It Works: The Magic of Docker Labels
+> The `overrides/compose.https.yaml` file adds a `proxy` service (Traefik) and adds `labels` to the `frontend` service. These labels are instructions that Traefik reads automatically:
+> -   `traefik.enable=true`: Tells Traefik to manage this container.
+> -   `traefik.http.routers.frontend-http.rule=Host(${SITES})`: Tells Traefik to route traffic for the domain in your `.env` file to this container.
+> -   `traefik.http.routers.frontend-http.tls.certresolver=main-resolver`: Tells Traefik to automatically get an SSL certificate for this domain.
+
+---
+
+### Part 3: Launch and Finalize
+
+#### Step 7: Launch the Entire Stack
+From the `~/gitops` directory, start everything with one command. Docker Compose will read your `.env` file, pull the necessary images, and start all containers, including Traefik.
+
+```bash
+cd ~/gitops
+docker compose up -d
+```
+
+Traefik will now start, detect the `frontend` container, and automatically request an SSL certificate from Let's Encrypt in the background.
+
+#### Step 8: Create the First Site
+This final step is crucial. You must create a site whose name **exactly matches** the domain you specified in your `.env` file.
+
+```bash
+# From the ~/gitops directory
+docker compose exec backend bench new-site \
+  --mariadb-user-host-login-scope=% \
+  --db-root-password 'a-very-secure-password' \
+  --admin-password 'your-admin-password' \
+  --install-app erpnext \
+  --install-app hrms \
+  erp.yourdomain.com
+```
+
+#### Step 9: Access Your Secure, Custom Site
+That's it! Open your browser and navigate to your domain. You have a fully custom ERPNext installation running securely over HTTPS with zero manual proxy or SSL configuration.
+
+-   **URL**: `https://erp.yourdomain.com`
+
+---
+
+## Backup Settings, Inventory, and Updating ERPNext
+
+### Backup Steps
+
+1.  **Set variables/placeholders**:
+
+    ```bash
+    COMPOSE_YML=/path/to/pwd.yml
+    SITE=your_site_name
+    DEST=/on/host/backup/destination
+    DB_NAME=your_database_name
+    ```
+
+2.  **Dump the MariaDB database**:
+
+    ```bash
+    docker compose -f $COMPOSE_YML exec db sh -c \
+      'exec mariadb-dump --single-transaction -uroot -p"$MYSQL_ROOT_PASSWORD" '$DB_NAME \
+      ' ' | gzip > $DEST/database-$(date +%Y%m%d_%H%M%S).sql.gz
+    ```
+
+3.  **Back up the `site_config.json`**:
+
+    ```bash
+    docker compose -f $COMPOSE_YML cp \
+      backend:/home/frappe/frappe-bench/sites/$SITE/site_config.json \
+      $DEST/site_config-$(date +%Y%m%d_%H%M%S).json
+    ```
+
+4.  **Back up private file uploads**:
+
+    ```bash
+    docker compose -f $COMPOSE_YML exec backend sh -c \
+      'exec tar cf - ./sites/'$SITE'/private/files' | gzip > \
+      $DEST/Private-Files-$(date +%Y%m%d_%H%M%S).tar.gz
+    ```
+
+5.  **Back up public file uploads**:
+
+    ```bash
+    docker compose -f $COMPOSE_YML exec backend sh -c \
+      'exec tar cf - ./sites/'$SITE'/public/files' | gzip > \
+      $DEST/Public-Files-$(date +%Y%m%d_%H%M%S).tar.gz
+    ```
+
+---
+
+### Restore Steps
+
+1.  **Set variables/placeholders**:
+
+    ```bash
+    COMPOSE_YML=/path/to/pwd.yml
+    SITE=your_site_name
+    DB_NAME=your_database_name
+    SOURCE=/on/host/backup/source
+    ```
+
+2.  **Decompress the database dump**:
+
+    ```bash
+    gzip -d $SOURCE/database-date_time_of_backup.sql.gz
+    ```
+
+3.  **Copy the SQL file into the `db` container**:
+
+    ```bash
+    docker compose -f $COMPOSE_YML cp \
+      $SOURCE/database-date_time_of_backup.sql \
+      db:/tmp/
+    ```
+
+4.  **Restore database inside container**:
+
+    ```bash
+    docker compose exec -i db sh -c \
+      'exec mariadb -uroot -p"$MYSQL_ROOT_PASSWORD" '$DB_NAME' < /tmp/database-date_time_of_backup.sql'
+    ```
+
+5.  **Restore `site_config.json`** (if needed, e.g., for encryption keys) by copying the saved version over the live one.
+
+6.  **Copy file archives into `backend`**:
+
+    ```bash
+    docker compose -f $COMPOSE_YML cp \
+      $SOURCE/Public-Files-date_time_of_backup.tar.gz backend:/home/frappe/frappe-bench
+    docker compose -f $COMPOSE_YML cp \
+      $SOURCE/Private-Files-date_time_of_backup.tar.gz backend:/home/frappe/frappe-bench
+    ```
+
+7.  **Unpack the archives inside the `backend` container**:
+
+    ```bash
+    docker compose -f $COMPOSE_YML exec backend tar xzf Public-Files-date_time_of_backup.tar.gz
+    docker compose -f $COMPOSE_YML exec backend tar xzf Private-Files-date_time_of_backup.tar.gz
+    ```
+
+---
+
+If you like, I can give you a **ready bash script** using your `pwd.yml` and actual app names to automate this.
+
+## Automatic Sync to Google Drive
+
+Your current backup and restore steps are correct. To extend them with **automatic sync to Google Drive**, you only need to wrap them in a script and add `rclone`.
+
+**1. Install rclone and configure Google Drive**
+
+```bash
+sudo apt install rclone
+rclone config   # create remote called "gdrive"
+```
+
+**2. Create backup script `/srv/scripts/erpnext_backup.sh`**
+
+```bash
+#!/bin/bash
+set -e
+
+COMPOSE_YML=/path/to/pwd.yml
+SITE=your_site_name
+DB_NAME=your_database_name
+DEST=/srv/backups
+
+mkdir -p $DEST
+
+# Database
+docker compose -f $COMPOSE_YML exec db sh -c \
+  'exec mariadb-dump --single-transaction -uroot -p"$MYSQL_ROOT_PASSWORD" '$DB_NAME \
+  ' ' | gzip > $DEST/database-$(date +%Y%m%d_%H%M%S).sql.gz
+
+# site_config.json
+docker compose -f $COMPOSE_YML cp \
+  backend:/home/frappe/frappe-bench/sites/$SITE/site_config.json \
+  $DEST/site_config-$(date +%Y%m%d_%H%M%S).json
+
+# Private files
+docker compose -f $COMPOSE_YML exec backend sh -c \
+  'exec tar cf - ./sites/'$SITE'/private/files' | gzip > \
+  $DEST/Private-Files-$(date +%Y%m%d_%H%M%S).tar.gz
+
+# Public files
+docker compose -f $COMPOSE_YML exec backend sh -c \
+  'exec tar cf - ./sites/'$SITE'/public/files' | gzip > \
+  $DEST/Public-Files-$(date +%Y%m%d_%H%M%S).tar.gz
+
+# Delete older than 14 days
+find $DEST -type f -mtime +14 -delete
+
+# Sync to Google Drive
+rclone copy $DEST gdrive:/erpnext-backups --transfers=1 --checkers=2
+```
+
+**3. Make executable**
+
+```bash
+chmod +x /srv/scripts/erpnext_backup.sh
+```
+
+**4. Add cron job**
+
+```bash
+crontab -e
+0 2 * * * /srv/scripts/erpnext_backup.sh >> /var/log/erpnext_backup.log 2>&1```
+
+This keeps local backups for 14 days and pushes them to Google Drive every night.
+
+Do you want me to also add a **restore-from-Google-Drive script** so you can pull any backup directly without manual download?
+
+### Restore from Google Drive Script
+
+Here’s a restore script that pulls your backups directly from Google Drive using `rclone`:
+
+**1. Create `/srv/scripts/erpnext_restore.sh`**
+
+```bash
+#!/bin/bash
+set -e
+
+# Variables
+COMPOSE_YML=/path/to/pwd.yml
+SITE=your_site_name
+DB_NAME=your_database_name
+RESTORE_DIR=/srv/restore
+REMOTE=gdrive:/erpnext-backups   # rclone remote
+
+mkdir -p $RESTORE_DIR
+
+echo "Fetching latest backup from Google Drive..."
+rclone copy --max-age 30d --include "database-*.sql.gz" $REMOTE $RESTORE_DIR --progress
+rclone copy --max-age 30d --include "site_config-*.json" $REMOTE $RESTORE_DIR --progress
+rclone copy --max-age 30d --include "Private-Files-*.tar.gz" $REMOTE $RESTORE_DIR --progress
+rclone copy --max-age 30d --include "Public-Files-*.tar.gz" $REMOTE $RESTORE_DIR --progress
+
+# Identify latest files
+DB_FILE=$(ls -t $RESTORE_DIR/database-*.sql.gz | head -1)
+SITE_CONFIG=$(ls -t $RESTORE_DIR/site_config-*.json | head -1)
+PRIVATE_FILES=$(ls -t $RESTORE_DIR/Private-Files-*.tar.gz | head -1)
+PUBLIC_FILES=$(ls -t $RESTORE_DIR/Public-Files-*.tar.gz | head -1)
+
+echo "Restoring database..."
+gzip -d -c $DB_FILE > $RESTORE_DIR/database.sql
+docker compose -f $COMPOSE_YML cp $RESTORE_DIR/database.sql db:/tmp/database.sql
+docker compose -f $COMPOSE_YML exec -T db sh -c \
+  'exec mariadb -uroot -p"$MYSQL_ROOT_PASSWORD" '$DB_NAME' < /tmp/database.sql'
+
+echo "Restoring site_config.json..."
+docker compose -f $COMPOSE_YML cp $SITE_CONFIG backend:/home/frappe/frappe-bench/sites/$SITE/site_config.json
+
+echo "Restoring public/private files..."
+docker compose -f $COMPOSE_YML cp $PRIVATE_FILES backend:/home/frappe/frappe-bench/
+docker compose -f $COMPOSE_YML cp $PUBLIC_FILES backend:/home/frappe/frappe-bench/
+docker compose -f $COMPOSE_YML exec backend tar xzf $(basename $PRIVATE_FILES)
+docker compose -f $COMPOSE_YML exec backend tar xzf $(basename $PUBLIC_FILES)
+
+echo "Restore completed."
+```
+
+**2. Make it executable**
+
+```bash
+chmod +x /srv/scripts/erpnext_restore.sh
+```
+
+**3. Usage**
+When needed:
+
+```bash
+/srv/scripts/erpnext_restore.sh
+```
+
+This will always pull the most recent database, config, and file archives from Google Drive, then restore them inside your containers.
+
+Do you also want me to add **option flags** (e.g. `--date 20250910` to restore a specific day) instead of always restoring the latest?
+
+---
+
+## Troubleshoot
+
+### OSError: wkhtmltopdf reported an error: exit with code 1 due to network error: connectionrefused
+
+```bash
+docker exec -u 0 -it  frappe_docker-backend-1 bash
+```
+
+```bash
+cd sites
+```
+
+```bash
+vim common_site_config.json
+```
+
+Add this line:
+
+```json
+"host_name": "http://127.0.0.1:8000",
+```
+
+It should look like this:
+
+```json
+{
+ "db_host": "db",
+ "db_port": 3306,
+ "host_name": "http://127.0.0.1:8000",
+ "redis_cache": "redis://redis-cache:6379",
+ "redis_queue": "redis://redis-queue:6379",
+ "redis_socketio": "redis://redis-queue:6379",
+ "socketio_port": 9000
+}
+```
+```
