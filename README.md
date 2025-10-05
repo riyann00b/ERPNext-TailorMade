@@ -34,6 +34,8 @@ Ensure the following software is installed and running:
 - [Troubleshoot](#troubleshoot)
   - [OSError: wkhtmltopdf reported an error](#oserror-wkhtmltopdf-reported-an-error-exit-with-code-1-due-to-network-error-connectionrefused)
 
+---
+
 ### Self-Hosted Docker Container: Simple Setup (No Custom Apps)
 
 See [Self-hosted Docs](https://github.com/frappe/erpnext#self-hosted).
