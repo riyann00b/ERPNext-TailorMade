@@ -92,7 +92,8 @@ Clone the official `frappe_docker` repository and navigate into the `development
 
 ```bash
 git clone https://github.com/frappe/frappe_docker
-cd frappe_docker/development```
+cd frappe_docker/development
+```
 
 #### Step 2: Configure Custom Applications via `apps.json`
 Create a file named `apps.json` that lists all the apps to be installed.
@@ -573,7 +574,8 @@ chmod +x /srv/scripts/erpnext_backup.sh
 
 ```bash
 crontab -e
-0 2 * * * /srv/scripts/erpnext_backup.sh >> /var/log/erpnext_backup.log 2>&1```
+0 2 * * * /srv/scripts/erpnext_backup.sh >> /var/log/erpnext_backup.log 2>&1
+```
 
 This keeps local backups for 14 days and pushes them to Google Drive every night.
 
@@ -681,5 +683,7 @@ It should look like this:
  "redis_socketio": "redis://redis-queue:6379",
  "socketio_port": 9000
 }
-```
+
+Save and exit
+
 ```
