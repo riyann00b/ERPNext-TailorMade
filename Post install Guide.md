@@ -365,265 +365,278 @@ This format is optimized for 50mm x 100mm thermal label printers, offering a mod
 
 **HTML Content:**
 ```html
-<!--
-    REDESIGNED PROFESSIONAL THERMAL LABEL
-    50mm x 100mm with Modern UI/UX Design
-    Optimized spacing, visual hierarchy, and readability
--->
-<div class="tag-container">
-  
-  <!-- Brand Header Section -->
-  <div class="brand-header">
-    {% set logo_file = frappe.get_all('File',
-      filters={
-        'attached_to_doctype': 'Company',
-        'attached_to_name': frappe.db.get_value("Global Defaults", None, "default_company")
-      },
-      fields=['file_url'], limit=1) %}
-    
-    <div class="logo-section">
-      {% if logo_file %}
-        <img src="{{ logo_file.file_url }}" class="company-logo" alt="Logo">
-      {% endif %}
-      <div class="company-info">
-        <div class="company-name">{{ frappe.db.get_value("Global Defaults", None, "default_company") or "MOTI TAKA" }}</div>
-        {% if doc.brand %}
-        <div class="brand-badge">{{ doc.brand }}</div>
-        {% endif %}
-      </div>
-    </div>
+{% set company_name = doc.company or frappe.db.get_value("Global Defaults", None, "default_company") or "COMPANY" %}
+{% set logo = frappe.get_all("File", filters={"attached_to_doctype": "Company", "attached_to_name": company_name}, fields=["file_url"], limit=1) %}
+{% set barcode_value = (doc.barcodes and doc.barcodes[0].barcode) or "" %}
+{% set show_size = doc.custom_size and (doc.item_group or "")|lower == "readymade suit" %}
+{% set currency = doc.currency or frappe.db.get_value("Company", company_name, "default_currency") or "INR" %}
+{% set mrp_price = doc.custom_50_of_ssr or 0 %}
+{% set sale_price = doc.standard_rate or 0 %}
+
+<div class="tag">
+
+  <div class="tag-header{% if not (logo and logo|length > 0) %} no-logo{% endif %}">
+    {% if logo and logo|length > 0 %}
+      <img src="{{ logo[0].file_url }}" class="tag-logo" alt="{{ company_name }} Logo">
+    {% endif %}
+    <div class="tag-company">{{ company_name|upper }}</div>
   </div>
-  
-  <!-- Product Identity Section -->
-  <div class="product-section">
-    <div class="item-name">{{ doc.item_name or "PRODUCT NAME" }}</div>
-  </div>
-  
-  <!-- Product Details Grid -->
-  <div class="details-grid">
-    <div class="detail-item">
-      <span class="detail-label">COLOR</span>
-      <span class="detail-value">{{ doc.custom_color or "N/A" }}</span>
+
+  {% if doc.brand %}
+  <div class="tag-box tag-brand">{{ doc.brand|upper }}</div>
+  {% endif %}
+
+  <div class="tag-box tag-item">{{ (doc.item_name or "ITEM NAME")|upper }}</div>
+
+  <div class="tag-row">
+    {% if doc.custom_color %}
+    <div class="tag-cell">
+      <div class="cell-label">COLOR</div>
+      <div class="cell-value">{{ doc.custom_color|upper }}</div>
     </div>
-    
-    {% set ig = (doc.item_group or '')|lower %}
-    {% set pc = (doc.custom_product_category or '')|lower %}
-    {% if not ('dress material' == ig or 'dress material' == pc) %}
-    <div class="detail-item">
-      <span class="detail-label">SIZE</span>
-      <span class="detail-value">{{ doc.custom_size or "N/A" }}</span>
+    {% endif %}
+
+    {% if show_size %}
+    <div class="tag-cell">
+      <div class="cell-label">SIZE</div>
+      <div class="cell-value">{{ doc.custom_size|upper }}</div>
     </div>
     {% endif %}
   </div>
-  
-  <!-- Pricing Section -->
-  <div class="pricing-section">
-    {% set std = doc.standard_rate or 0 %}
-    {% set offer = (std / 2) %}
-    
-    <div class="price-container">
-      <div class="mrp-section">
-        <span class="price-label">M.R.P</span>
-        <span class="mrp-price">{{ frappe.format(std, df={"fieldtype":"Currency","options":doc.currency}) }}</span>
-      </div>
-      <div class="offer-section">
-        <span class="price-label">OFFER</span>
-        <span class="offer-price">{{ frappe.format(offer, df={"fieldtype":"Currency","options":doc.currency}) }}</span>
-      </div>
+
+  <div class="tag-row prices">
+    <div class="tag-cell">
+      <div class="cell-label">MRP</div>
+      <div class="cell-value price-strike">{{ frappe.format_value(mrp_price, {"fieldtype":"Currency","options":currency}) }}</div>
+    </div>
+    <div class="tag-cell dark">
+      <div class="cell-label">SALE 50%</div>
+      <div class="cell-value">{{ frappe.format_value(sale_price, {"fieldtype":"Currency","options":currency}) }}</div>
     </div>
   </div>
-  
-  <!-- Barcode Section -->
-  <div class="barcode-section">
-    {% set code = (doc.barcodes and doc.barcodes and doc.barcodes.barcode) and doc.barcodes.barcode or '' %}
-    {% if code %}
-      <div class="barcode-wrapper">
-        <canvas id="barcode-1" class="barcode-canvas"></canvas>
-      </div>
+
+  <div class="barcode">
+    {% if barcode_value %}
+      <svg id="tag-barcode" class="barcode-svg"></svg>
+      <div class="barcode-text">{{ barcode_value }}</div>
     {% else %}
-      <div class="no-barcode-display">
-        <div class="no-barcode-text">NO BARCODE</div>
-      </div>
+      <div class="no-barcode">NO BARCODE</div>
     {% endif %}
   </div>
-  
-  <!-- Footer Section -->
-  <div class="footer-section">
-    <div class="internal-reference">{{ (doc.custom_encrypted_buying_price or doc.item_code or '')|upper }}</div>
-  </div>
-  
+
+  {% if doc.custom_encrypted_buying_price %}
+  <div class="tag-footer">{{ doc.custom_encrypted_buying_price|upper }}</div>
+  {% endif %}
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.12.1/dist/JsBarcode.all.min.js"></script>
-
 <script>
 (function(){
-  try {
-    if (typeof JsBarcode === 'undefined') return;
-    var code = "{{ code }}".trim();
-    var canvas = document.getElementById('barcode-1');
-    if (!canvas || !code) return;
-    JsBarcode(canvas, code, {
-      format: "CODE128",
-      width: 2,
-      height: 50,
-      displayValue: false,
-      margin: 8,
-      background: "#FFFFFF",
-      lineColor: "#000000"
-    });
-  } catch(e){ console.error(e); }
+  if (typeof JsBarcode === "undefined") return;
+  const value = "{{ barcode_value|e }}".trim();
+  if (!value) return;
+  const svg = document.getElementById("tag-barcode");
+  if (!svg) return;
+
+  JsBarcode(svg, value, {
+    format: "CODE128",
+    width: 1.4,
+    height: 45,
+    margin: 0,
+    displayValue: false,
+    background: "#FFFFFF",
+    lineColor: "#000000"
+  });
+
+  svg.setAttribute("shape-rendering", "crispEdges");
+  svg.style.width = "42mm";
+  svg.style.height = "15mm";
 })();
 </script>
 ```
 
 **CSS for Label:**
 ```css
-/*
-    REDESIGNED PROFESSIONAL THERMAL LABEL
-    50mm x 100mm with Modern UI/UX Design
-    Optimized spacing, visual hierarchy, and readability
-*/
-.tag-container {
-  width: 100mm; /* Adjust container width to match label width */
-  font-family: 'SF Mono', 'Courier New', monospace;
-  font-size: 12px; /* Slightly smaller font for labels */
-  color: #000;
-  font-weight: bold;
-  text-align: center;
-  padding: 2mm; /* Add padding for better spacing */
-  box-sizing: border-box;
-}
-
-/* Brand Header */
-.brand-header {
-  margin-bottom: 4px;
-}
-.logo-section {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 3px;
-}
-.company-logo {
-  max-width: 40px; /* Smaller logo for labels */
-  max-height: 40px;
-  margin-right: 5px;
-}
-.company-info {
-  line-height: 1.3;
-}
-.company-name {
-  font-size: 16px;
-  font-weight: bold;
+@page {
+  size: 50mm 100mm;
   margin: 0;
 }
-.brand-badge {
-  font-size: 10px;
-  font-weight: normal;
-  color: #555;
+
+body {
+  margin: 0;
+  background: #ffffff;
+  color: #000000;
+  font-family: Arial, Helvetica, sans-serif;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 
-/* Product Identity */
-.product-section {
-  margin-bottom: 6px;
-}
-.item-name {
-  font-size: 16px;
-  font-weight: bold;
-  word-wrap: break-word; /* Ensure long names wrap */
-}
-
-/* Product Details Grid */
-.details-grid {
-  display: flex;
-  justify-content: space-around;
-  margin-bottom: 6px;
-}
-.detail-item {
+.tag {
+  width: 50mm;
+  height: 100mm;
+  padding: 3mm 2mm;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  line-height: 1.2;
-}
-.detail-label {
-  font-size: 10px;
-  font-weight: normal;
-  color: #666;
-  margin-bottom: 1px;
-}
-.detail-value {
-  font-size: 14px;
-  font-weight: bold;
+  gap: 1.6mm;
 }
 
-/* Pricing Section */
-.pricing-section {
-  margin-bottom: 8px;
-}
-.price-container {
+/* Header */
+.tag-header {
+  border-bottom: 1px solid #000;
+  padding: 0 0.6mm 1.1mm;
   display: flex;
-  justify-content: space-around;
-  align-items: baseline;
-}
-.mrp-section, .offer-section {
-  display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-}
-.price-label {
-  font-size: 10px;
-  font-weight: normal;
-  color: #555;
-}
-.mrp-price, .offer-price {
-  font-size: 16px;
-  font-weight: bold;
-}
-.offer-price {
-  color: #e60000; /* Highlight offer price */
-}
-
-/* Barcode Section */
-.barcode-section {
+  gap: 1.2mm;
   text-align: center;
-  margin-bottom: 5px;
 }
-.barcode-wrapper {
-  display: inline-block;
-  padding: 3px;
-  background-color: #FFF; /* White background for barcode */
-  border: 1px solid #DDD; /* Light border */
+.tag-logo {
+  max-height: 9mm;
+  max-width: 16mm;
+  object-fit: contain;
+  flex-shrink: 0;
 }
-.barcode-canvas {
-  display: block; /* Removes extra space below canvas */
+.tag-company {
+  font-weight: 900;
+  font-size: 9.4pt;
+  letter-spacing: 0.06em;
+  flex: 1;
+  text-align: center;
 }
-.no-barcode-display {
-  height: 60px; /* Match barcode height */
+.tag-header.no-logo {
+  justify-content: center;
+}
+.tag-header.no-logo .tag-company {
+  flex: 0;
+}
+
+/* Generic boxes */
+.tag-box {
+  border: 1px solid #000;
+  border-radius: 1mm;
+  text-align: center;
+  padding: 1.4mm;
+  font-weight: 900;
+  font-size: 8.6pt;
+  letter-spacing: 0.04em;
+}
+
+.tag-brand {
+  background: #000000;
+  color: #ffffff;
+}
+
+.tag-item {
+  font-size: 9.2pt;
+  line-height: 1.18;
+}
+
+/* Attribute rows */
+.tag-row {
+  display: flex;
+  gap: 1mm;
+}
+
+.tag-row.prices {
+  margin-top: -0.2mm;
+}
+
+.tag-cell {
+  flex: 1;
+  border: 1px solid #000;
+  border-radius: 1mm;
+  padding: 1.1mm;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7mm;
+}
+
+.cell-label {
+  font-size: 5.6pt;
+  font-weight: 800;
+  letter-spacing: 0.24mm;
+  color: #000000;
+}
+
+.cell-value {
+  font-size: 8.6pt;
+  font-weight: 900;
+  line-height: 1.12;
+}
+
+.tag-cell.dark {
+  background: #000000;
+  color: #ffffff;
+}
+
+.tag-cell.dark .cell-label,
+.tag-cell.dark .cell-value {
+  color: #ffffff;
+}
+
+.price-strike {
+  text-decoration: line-through;
+  text-decoration-thickness: 0.35mm;
+}
+
+/* Barcode block */
+.barcode {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 1.2mm;
+  padding-bottom: 0.6mm;
+  gap: 0.8mm;
+}
+
+.barcode-svg {
+  width: 42mm;
+  height: 15mm;
+}
+
+.barcode-text {
+  font-size: 7.2pt;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  color: #000000;
+}
+
+.no-barcode {
+  font-size: 7.2pt;
+  font-weight: 800;
+  opacity: 0.55;
+  color: #000000;
+}
+
+/* Footer */
+.tag-footer {
+  border-top: 1px dashed #000;
+  padding: 1.2mm 1.2mm 1mm;
+  margin-top: 1mm;
+  background: #000000;
+  color: #ffffff;
+  font-size: 7.4pt;
+  letter-spacing: 0.06em;
+  font-weight: 900;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px dashed #CCC;
-  background-color: #f9f9f9;
-}
-.no-barcode-text {
-  font-size: 14px;
-  font-weight: bold;
-  color: #888;
+  text-align: center;
 }
 
-/* Footer Section */
-.footer-section {
-  font-size: 10px;
-  font-weight: normal;
-  color: #555;
-  line-height: 1.3;
-  margin-top: 8px;
-}
-.internal-reference {
-  font-weight: bold;
-  font-size: 12px;
-  word-wrap: break-word;
+@media print {
+  .tag {
+    page-break-inside: avoid;
+  }
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }
 ```
 
