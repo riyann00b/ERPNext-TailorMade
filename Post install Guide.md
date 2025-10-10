@@ -144,7 +144,7 @@ Designed for standard thermal receipt printers, this format includes advanced fe
 
 **HTML Content:**
 ```html
-<!-- ### FINAL, ROBUST 72mm THERMAL RECEIPT (with Custom Field) ### -->
+<!-- ### FIXED 72mm THERMAL RECEIPT - HTML ONLY ### -->
 {%- set company = frappe.get_doc("Company", doc.company) if doc.company else None -%}
 
 <div class="receipt">
@@ -198,7 +198,7 @@ Designed for standard thermal receipt printers, this format includes advanced fe
                 {% endif %}
             </div>
             
-            <!-- ### NEW FEATURE: "Before Discount" price from custom_50_of_ssr field ### -->
+            <!-- ### "Before Discount" price from custom_50_of_ssr field ### -->
             {% if item.custom_50_of_ssr and item.custom_50_of_ssr > 0 %}
             <div class="before-discount-price">
                 <span>{{ _("Before Discount") }}:</span>
@@ -286,7 +286,7 @@ Designed for standard thermal receipt printers, this format includes advanced fe
         <p class="terms">
             {% if company and company.terms %}{{ company.terms }}{% else %}{{ _("Return/Exchange within 3 days with receipt.") }}{% endif %}
         </p>
-        <div class="barcode">
+        <div class="barcode-container">
             <svg id="barcode"></svg>
         </div>
         <div class="qrcode">
@@ -301,62 +301,234 @@ Designed for standard thermal receipt printers, this format includes advanced fe
 <!-- Barcode Generation Script -->
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
 <script>
-    try {
-        JsBarcode("#barcode", "{{ doc.name }}", {
-            format: "CODE128", displayValue: false, width: 1.5, height: 40, margin: 0
-        });
-    } catch (e) { /* Barcode generation failed */ }
+    document.addEventListener('DOMContentLoaded', function() {
+        try {
+            var billNumber = "{{ doc.name }}";
+            if (billNumber && billNumber.trim() !== "") {
+                JsBarcode("#barcode", billNumber, {
+                    format: "CODE128",
+                    displayValue: true,
+                    width: 1.2,
+                    height: 40,
+                    margin: 0,
+                    fontSize: 12,
+                    textMargin: 2,
+                    background: "#ffffff",
+                    lineColor: "#000000"
+                });
+            }
+        } catch (e) {
+            console.error("Barcode generation failed:", e);
+        }
+    });
 </script>
 ```
 
 **CSS for Receipt:**
 ```css
 /* --- Professional 72mm Thermal Receipt CSS --- */
+
+/* Base Receipt Container */
 .receipt {
     width: 72mm;
+    max-width: 72mm;
     font-family: 'SF Mono', 'Courier New', monospace;
     font-size: 13px;
     color: #000;
     font-weight: bold;
+    margin: 0 auto;
+    box-sizing: border-box;
 }
+
 /* --- HEADER & FOOTER --- */
-.receipt-header, .receipt-footer { text-align: center; }
-.logo { max-width: 100%; max-height: 60px; margin-bottom: 5px; }
-.company-name { font-size: 20px; margin: 0; }
-.company-details { font-size: 12px; line-height: 1.4; margin: 3px 0; }
-.thank-you { font-size: 15px; margin-top: 10px; }
-.terms { font-size: 11px; }
+.receipt-header, 
+.receipt-footer { 
+    text-align: center; 
+}
+
+.logo { 
+    max-width: 100%; 
+    max-height: 60px; 
+    margin-bottom: 5px; 
+}
+
+.company-name { 
+    font-size: 20px; 
+    margin: 0; 
+}
+
+.company-details { 
+    font-size: 12px; 
+    line-height: 1.4; 
+    margin: 3px 0; 
+}
+
+.thank-you { 
+    font-size: 15px; 
+    margin-top: 10px; 
+}
+
+.terms { 
+    font-size: 11px; 
+}
 
 /* --- SEPARATORS --- */
-hr.separator { border: none; border-top: 1px dashed #000; margin: 8px 0; }
-hr.separator-heavy { border: none; border-top: 2px solid #000; margin: 8px 0; }
+hr.separator { 
+    border: none; 
+    border-top: 1px dashed #000; 
+    margin: 8px 0; 
+}
+
+hr.separator-heavy { 
+    border: none; 
+    border-top: 2px solid #000; 
+    margin: 8px 0; 
+}
 
 /* --- TRANSACTION & PAYMENT INFO --- */
-.info-section, .payment-section, .totals-section { margin: 10px 0; }
-.section-header { text-align: center; font-size: 15px; margin-bottom: 8px; }
-.info-item, .total-row, .payment-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
-.change-due { display: flex; justify-content: space-between; font-size: 15px; margin-top: 8px; padding-top: 5px; border-top: 1px dashed #000; }
+.info-section, 
+.payment-section, 
+.totals-section { 
+    margin: 10px 0; 
+}
+
+.section-header { 
+    text-align: center; 
+    font-size: 15px; 
+    margin-bottom: 8px; 
+}
+
+.info-item, 
+.total-row, 
+.payment-row { 
+    display: flex; 
+    justify-content: space-between; 
+    margin-bottom: 3px; 
+}
+
+.change-due { 
+    display: flex; 
+    justify-content: space-between; 
+    font-size: 15px; 
+    margin-top: 8px; 
+    padding-top: 5px; 
+    border-top: 1px dashed #000; 
+}
 
 /* --- ITEMS SECTION --- */
-.items-header-row { display: flex; justify-content: space-between; font-size: 12px; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 4px; }
-.item-name-header { text-align: left; }
-.item-total-header { text-align: right; }
-.item-entry { margin-bottom: 10px; }
-.item-name { font-size: 14px; }
-.item-variants { font-size: 11px; font-weight: normal; margin-top: 2px; }
-.item-calculation, .discount-calculation, .net-rate-calculation, .before-discount-price { display: flex; justify-content: space-between; font-size: 13px; padding-left: 10px; }
-.net-rate-calculation { justify-content: flex-end; }
-.line-total { text-align: right; }
-.before-discount-price { color: #333; font-weight: normal; font-style: italic; }
+.items-header-row { 
+    display: flex; 
+    justify-content: space-between; 
+    font-size: 12px; 
+    border-bottom: 1px solid #000; 
+    padding-bottom: 4px; 
+    margin-bottom: 4px; 
+}
+
+.item-name-header { 
+    text-align: left; 
+}
+
+.item-total-header { 
+    text-align: right; 
+}
+
+.item-entry { 
+    margin-bottom: 10px; 
+}
+
+.item-name { 
+    font-size: 14px; 
+}
+
+.item-variants { 
+    font-size: 11px; 
+    font-weight: normal; 
+    margin-top: 2px; 
+}
+
+.item-calculation, 
+.discount-calculation, 
+.net-rate-calculation, 
+.before-discount-price { 
+    display: flex; 
+    justify-content: space-between; 
+    font-size: 13px; 
+    padding-left: 10px; 
+}
+
+.net-rate-calculation { 
+    justify-content: flex-end; 
+}
+
+.line-total { 
+    text-align: right; 
+}
+
+.before-discount-price { 
+    color: #333; 
+    font-weight: normal; 
+    font-style: italic; 
+}
 
 /* --- TOTALS --- */
-.grand-total { display: flex; justify-content: space-between; font-size: 18px; border-top: 2px solid #000; margin-top: 8px; padding-top: 5px; }
+.grand-total { 
+    display: flex; 
+    justify-content: space-between; 
+    font-size: 18px; 
+    border-top: 2px solid #000; 
+    margin-top: 8px; 
+    padding-top: 5px; 
+}
 
-/* --- BARCODE, QR & TIMESTAMP --- */
-.barcode { text-align: center; padding-top: 10px; }
-.qrcode { text-align: center; margin-top: 10px; }
-.qrcode img { width: 160px; height: 160px; }
-.print-timestamp { font-size: 11px; text-align: center; margin-top: 10px; font-weight: normal; }
+/* --- BARCODE - FIXED FOR 72mm WIDTH --- */
+.barcode-container { 
+    text-align: center; 
+    padding: 8px 0; 
+    margin: 8px auto;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.barcode-container svg { 
+    max-width: 100% !important; 
+    width: 100% !important;
+    height: auto !important;
+    display: block;
+    margin: 0 auto;
+}
+
+/* --- QR CODE & TIMESTAMP --- */
+.qrcode { 
+    text-align: center; 
+    margin-top: 10px; 
+}
+
+.qrcode img { 
+    width: 160px; 
+    height: 160px; 
+}
+
+.print-timestamp { 
+    font-size: 11px; 
+    text-align: center; 
+    margin-top: 10px; 
+    font-weight: normal; 
+}
+
+/* --- PRINT MEDIA OPTIMIZATION --- */
+@media print {
+    .receipt {
+        width: 72mm;
+        max-width: 72mm;
+        margin: 0;
+    }
+    
+    .barcode-container svg {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+}
 ```
 
 ### 3.2. Thermal Label (50mm x 100mm) - "Motitaka Product Label"
