@@ -688,7 +688,7 @@ It should look like this:
   "db_host": "db",
   "db_port": 3306,
   "default_site": "frontend",
-  "host_name":http://frappe_docker-frontend-1:8080",
+  "host_name": "http://frappe_docker-frontend-1:8080",
   "redis_cache": "redis://redis-cache:6379",
   "redis_queue":
   "redis://redis-queue:6379",
