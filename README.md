@@ -672,20 +672,28 @@ vim common_site_config.json
 Add this line:
 
 ```json
+"chromium_binary_path": "/usr/bin/chromium",
+"chromium_path": "/usr/bin/chromium",
 "host_name": "http://frappe_docker-frontend-1:8000",
+"default_site": "frontend",
+
 ```
 
 It should look like this:
 
 ```json
 {
- "db_host": "db",
- "db_port": 3306,
- "host_name": "http://frappe_docker-frontend-1:8000",
- "redis_cache": "redis://redis-cache:6379",
- "redis_queue": "redis://redis-queue:6379",
- "redis_socketio": "redis://redis-queue:6379",
- "socketio_port": 9000
+  "chromium_binary_path": "/usr/bin/chromium",
+  "chromium_path": "/usr/bin/chromium",
+  "db_host": "db",
+  "db_port": 3306,
+  "default_site": "frontend",
+  "host_name":http://frappe_docker-frontend-1:8080",
+  "redis_cache": "redis://redis-cache:6379",
+  "redis_queue":
+  "redis://redis-queue:6379",
+  "redis_socketio": "redis://redis-queue: 6379",
+  "socketio_port": 9000
 }
 
 Save and exit
