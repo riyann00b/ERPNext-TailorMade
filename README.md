@@ -672,7 +672,7 @@ vim common_site_config.json
 Add this line:
 
 ```json
-"host_name": "http://127.0.0.1:8000",
+"host_name": "http://frappe_docker-frontend-1:8000",
 ```
 
 It should look like this:
@@ -681,7 +681,7 @@ It should look like this:
 {
  "db_host": "db",
  "db_port": 3306,
- "host_name": "http://127.0.0.1:8000",
+ "host_name": "http://frappe_docker-frontend-1:8000",
  "redis_cache": "redis://redis-cache:6379",
  "redis_queue": "redis://redis-queue:6379",
  "redis_socketio": "redis://redis-queue:6379",
