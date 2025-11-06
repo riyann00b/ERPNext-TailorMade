@@ -690,8 +690,7 @@ It should look like this:
   "default_site": "frontend",
   "host_name": "http://frappe_docker-frontend-1:8080",
   "redis_cache": "redis://redis-cache:6379",
-  "redis_queue":
-  "redis://redis-queue:6379",
+  "redis_queue": "redis://redis-queue:6379",
   "redis_socketio": "redis://redis-queue: 6379",
   "socketio_port": 9000
 }
